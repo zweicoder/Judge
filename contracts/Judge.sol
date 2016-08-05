@@ -50,7 +50,7 @@ contract Judge {
                         External / Public Functions
     ====================================================================*/
     // Called by others to initialize challenge
-    function initChallenge(bytes32 uuid, address subscriber, address insurer, address challenger, bytes32 start, bytes32 end, bytes32 proposed, uint numOperations, uint threshold) external {
+    function initChallenge(bytes32 uuid, JudgeSubscriber subscriber, address insurer, address challenger, bytes32 start, bytes32 end, bytes32 proposed, uint numOperations, uint threshold) external {
         // Not allowing ongoing sessions to be overwritten. Sessions are currenlty implemented to be 1v1, contracts will have to manage cases for multiple challengers
         // TODO implement uuid scheme somehow. Right now offload that job to users
         if (sessions[uuid].initialized) throw;
