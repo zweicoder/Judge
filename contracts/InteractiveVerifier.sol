@@ -19,6 +19,7 @@ contract InteractiveVerifier {
     struct Challenge {
         bytes32 start;
         bytes32 end;
+        bytes32 proposed;
         uint[9] indices; // hardcode branching factor for now
         using CheapArray for bytes32[] lbranches;
         using CheapArray for bytes32[] rbranches;
