@@ -82,7 +82,7 @@ contract InteractiveVerifier {
     }
 
     // Here we find where things went wrong. Returns the index of the branch array where things first went wrong.
-    function findDifference(bytes32 uuid) internal returns(uint8 diffIdx){
+    function findDifference(bytes32 uuid) internal returns(uint8 diffIdx) {
         Challenge challenge = challenges[uuid];
         var indices = challenge.indices;
 
@@ -99,7 +99,7 @@ contract InteractiveVerifier {
     }
 
     // Find out who's correct if below threshold, else update state variables and request new indices
-    function updateChallenge(bytes32 uuid, uint diffIdx) internal returns(LiarIs){
+    function updateChallenge(bytes32 uuid, uint diffIdx) internal returns(LiarIs) {
         Challenge challenge = challenges[uuid];
         Session session = sessions[uuid];
         var (start, end, proposed, indices, lbranches, rbranches) = challenge;
@@ -144,7 +144,7 @@ contract InteractiveVerifier {
 
     // we can abstract this to a function, and to do optional function args we take in contract address where contract has one method to call
     // Repeatedly sha start for n times and returns the result 
-    function repeatedlySha(bytes32 start, bytes32 end, uint n) constant internal return(bytes32){
+    function repeatedlySha(bytes32 start, bytes32 end, uint n) constant internal return(bytes32) {
         // 65  gas per sha, gas price is around 0.000 000 0225, so around 1 million shas will cost 0.1 eth
         // 1 million shas ~= 1.5s on my computer
         var temp = start;
