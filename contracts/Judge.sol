@@ -1,12 +1,13 @@
-import "CheapArray.sol";
+import 'CheapArray.sol';
+import 'JudgeSubscriber.sol';
 
 // Contract to handle interactive verification sessions mainly for tedious repeated operations. Should only handle ongoing sessions
-contract InteractiveVerifier {
+contract Judge {
     mapping(bytes32 => Challenge) challenges;
     mapping(bytes32 => Session) sessions;
     enum LiarIs {Inconclusive, Insurer, Challenger, Both};
     event Event_Challenge_Step(uint uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
-    event Event_Challenge_Ended(uint uuid, bytes32 result, address winner);
+    event Event_Challenge_Ended(uint uuid, address liar);
 
 
     /*====================================================================
@@ -14,9 +15,11 @@ contract InteractiveVerifier {
     ====================================================================*/
     struct Session {
         bool initialized;
+        JudgeSubscriber subscriber; // Contract calling this
         address insurer; // Insurer
         address challenger; // Challenger
         uint threshold;
+        uint started;
     }
 
     struct Challenge {
@@ -48,19 +51,21 @@ contract InteractiveVerifier {
                         External / Public Functions
     ====================================================================*/
     // Called by others to initialize challenge
-    function initChallenge(bytes32 uuid, bytes32 start, bytes32 end, bytes32 proposed, address insurer, address challenger, uint numOperations, uint threshold) external {
+    function initChallenge(bytes32 uuid, address subscriber, address insurer, address challenger, bytes32 start, bytes32 end, bytes32 proposed, uint numOperations, uint threshold) external {
         // Not allowing ongoing sessions to be overwritten. Sessions are currenlty implemented to be 1v1, contracts will have to manage cases for multiple challengers
+        // TODO implement uuid scheme somehow. Right now offload that job to users
         if (sessions[uuid].initialized) throw;
 
         // Initialize Challenge with predefined consensus
         challenges[uuid] = Challenge(start, end, proposed);
-        sessions[uuid] = Session(true, insurer, challenger, threshold);
+        sessions[uuid] = Session(true, subscriber, insurer, challenger, threshold, now);
         // Emit event to request for the result at each specified index
         Event_Challenge_Step(uuid, getBranchIndices(0, numOperations - 1));
     }
 
     // Method that players of the interactive verification game will call during an ongoing session
     function doChallenge(bytes32 uuid, bytes32[] branches) external onlyValidInput(uuid, branches) onlySessionPlayers(uuid) {
+        
         if (!updateMoves(uuid)) return; // Wait for the other player. TODO check if time expired
 
         // Both have submitted the X number of branches
@@ -89,7 +94,7 @@ contract InteractiveVerifier {
     }
 
     // Find out who's correct if below threshold, else update state variables and request new indices
-    function updateChallenge(bytes32 uuid, uint diffIdx) internal returns(LiarIs) {
+    function updateChallenge(bytes32 uuid, uint diffIdx) internal {
         Challenge challenge = challenges[uuid];
         Session session = sessions[uuid];
         var (start, end, proposed, indices, lbranches, rbranches) = challenge;
@@ -100,8 +105,9 @@ contract InteractiveVerifier {
         if (numOperations <= session.threshold) {
             var computed = repeatedlySha(newStart, newEnd, newProposed, numOperations);
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
-            var (result, liar) = getResult(computed, newEnd, newProposed);
-            Event_Challenge_Ended(uuid, result, liar);
+            var liar = getResult(computed, newEnd, newProposed);
+            Event_Challenge_Ended(uuid, liar);
+            session.subscriber.judgeCallback(uuid, liar);
             session.initialized = false; // Cheap clean up just in case. Maybe spend some gas to prevent bloat / pollution?
             return result;
         }
@@ -116,7 +122,6 @@ contract InteractiveVerifier {
 
         // Request for new indices
         Event_Challenge_Step(uuid, challenge.indices);
-        return LiarIs.Inconclusive;
     }
 
 
@@ -149,8 +154,6 @@ contract InteractiveVerifier {
     // we can abstract this to a function, and to do optional function args we take in contract address where contract has one method to call
     // Repeatedly sha start for n times and returns the result 
     function repeatedlySha(bytes32 start, bytes32 end, uint n) constant internal returns(bytes32) {
-        // 65  gas per sha, gas price is around 0.000 000 0225, so around 1 million shas will cost 0.1 eth
-        // 1 million shas ~= 1.5s on my computer
         var temp = start;
         for (uint i = 0; i < n; i++){
             temp = sha3(temp);
@@ -160,15 +163,10 @@ contract InteractiveVerifier {
     }
 
     // Determines the dishonest participant(s)
-    function getResult(bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(LiarIs, address){
+    function getResult(bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(address liar){
         if (computed != end && computed != proposed){ 
-            return (LiarIs.Both, 0x0);
+            return 0x0;
         }
-        if (computed != end){
-            return (LiarIs.Insurer, insurer);
-        }
-        if (computed != proposed){
-            return (LiarIs.Challenger, challenger);
-        } 
+        return computed != end ? insurer : challenger;
     }
 }
