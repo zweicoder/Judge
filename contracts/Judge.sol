@@ -108,7 +108,6 @@ contract Judge {
             Event_Challenge_Ended(uuid, liar);
             session.subscriber.judgeCallback(uuid, liar);
             session.initialized = false; // Cheap clean up just in case. Maybe spend some gas to prevent bloat / pollution?
-            return result;
         }
 
         // Update storage with new consensus
