@@ -69,7 +69,7 @@ contract InteractiveVerifier {
                         Internal Functions / Helpers
     ====================================================================*/
     // Returns the indices for the next step in the verification. Branching factor hardcoded
-    function getBranchIndices(left, right) internal returns (uint[9]) {
+    function getBranchIndices(left, right) constant internal returns (uint[9]) {
         var d = left + right;
         return [left, d/8, d/4, d*3/8, d/2, d*5/8, d*3/4, d*7/8, right];
     }
