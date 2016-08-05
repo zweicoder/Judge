@@ -7,6 +7,7 @@ contract Judge {
     mapping(bytes32 => Session) sessions;
     event Event_Challenge_Step(uint uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
     event Event_Challenge_Ended(uint uuid, address liar);
+    constant uint TIMEOUT_PERIOD = 3 minutes; // Maybe allow configurable cause some computations might take super long. 
 
 
     /*====================================================================
@@ -18,7 +19,7 @@ contract Judge {
         address insurer; // Insurer
         address challenger; // Challenger
         uint threshold;
-        uint started;
+        uint lastActive;
     }
 
     struct Challenge {
@@ -64,12 +65,18 @@ contract Judge {
 
     // Method that players of the interactive verification game will call during an ongoing session
     function doChallenge(bytes32 uuid, bytes32[] branches) external onlyValidInput(uuid, branches) onlySessionPlayers(uuid) {
-        
+        Session session = sessions[uuid];
+        if (now > session.startTime + TIMEOUT_PERIOD) {
+            // By default if no one submits the insurer will win
+            var liar = challenge[uuid].rbranches.isEmpty() ? challenger : insurer;
+            endSession(uuid, liar);
+        }
         if (!updateMoves(uuid)) return; // Wait for the other player. TODO check if time expired
 
         // Both have submitted the X number of branches
         var difference = findDifference(uuid);
-        updateChallenge(uuid, difference);
+        updateChallenge(uuid, difference); // RECURSIVE CALL to contract possible to drain $$$??
+        keepSessionAlive(uuid);
     }
 
 
@@ -89,7 +96,7 @@ contract Judge {
         }
 
         // TODO confirm that storage is modified via reference 
-        return challenge.lbranches.n== 0 || challenge.rbranches.n == 0
+        return challenge.lbranches.isEmpty() || challenge.rbranches.isEmpty();
     }
 
     // Find out who's correct if below threshold, else update state variables and request new indices
@@ -105,9 +112,7 @@ contract Judge {
             var computed = repeatedlySha(newStart, newEnd, newProposed, numOperations);
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
             var liar = getResult(computed, newEnd, newProposed);
-            Event_Challenge_Ended(uuid, liar);
-            session.subscriber.judgeCallback(uuid, liar);
-            session.initialized = false; // Cheap clean up just in case. Maybe spend some gas to prevent bloat / pollution?
+            endSession(uuid, liar);
         }
 
         // Update storage with new consensus
@@ -120,6 +125,10 @@ contract Judge {
 
         // Request for new indices
         Event_Challenge_Step(uuid, challenge.indices);
+    }
+
+    function keepSessionAlive(bytes32 uuid) internal {
+        sessions[uuid].lastActive = now;
     }
 
 
@@ -166,5 +175,11 @@ contract Judge {
             return 0x0;
         }
         return computed != end ? insurer : challenger;
+    }
+
+    function endSession(bytes32 uuid, address liar) constant internal {
+        Event_Challenge_Ended(uuid, liar);
+        sessions[uuid].subscriber.judgeCallback(uuid, liar);
+        sessions[uuid].initialized = false; // Cheap clean up just in case. Maybe spend some gas to prevent bloat / pollution? Does this allow overwriting vulnerabilities?
     }
 }
