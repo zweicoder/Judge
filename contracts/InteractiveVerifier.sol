@@ -9,6 +9,9 @@ contract InteractiveVerifier {
     event Event_Challenge_Ended(uint uuid, bytes32 result, address winner);
 
 
+    /*====================================================================
+                        Custom structs and Modifiers
+    ====================================================================*/
     struct Session {
         bool initialized;
         address insurer; // Insurer
@@ -40,6 +43,7 @@ contract InteractiveVerifier {
         _
     }
 
+
     /*====================================================================
                         External / Public Functions
     ====================================================================*/
@@ -66,14 +70,8 @@ contract InteractiveVerifier {
 
 
     /*====================================================================
-                        Internal Functions / Helpers
+                        Internal Functions
     ====================================================================*/
-    // Returns the indices for the next step in the verification. Branching factor hardcoded
-    function getBranchIndices(left, right) constant internal returns (uint[9]) {
-        var d = left + right;
-        return [left, d/8, d/4, d*3/8, d/2, d*5/8, d*3/4, d*7/8, right];
-    }
-
     // Update storage with a player's move (the branches). Returns true if both players have submitted their move.
     function updateMoves(bytes32 uuid, bytes32[] branches) internal returns(bool) {        
         Session session = sessions[uuid];
@@ -88,23 +86,6 @@ contract InteractiveVerifier {
 
         // TODO confirm that storage is modified via reference 
         return challenge.lbranches.n== 0 || challenge.rbranches.n == 0
-    }
-
-    // Here we find where things went wrong. Returns the index of the branch array where things first went wrong.
-    function findDifference(bytes32 uuid) constant internal returns(uint8 diffIdx) {
-        Challenge challenge = challenges[uuid];
-        var indices = challenge.indices;
-
-        for (uint i = 1; i < challenge.lbranches.length-1; i++) {
-            if (challenge.lbranches[i] != challenge.rbranches[i]) {
-                // We want to find the first place where the calculations diverged, then take the latest place where calculations are still agreed upon
-                return i;
-            }
-        }
-
-        // Variables not set cause nothing in the branches were different. Zoom to rightmost branch.
-        // This will work as long as the threshold is bigger than branching factor
-        return indices.length-1;
     }
 
     // Find out who's correct if below threshold, else update state variables and request new indices
@@ -136,6 +117,33 @@ contract InteractiveVerifier {
         // Request for new indices
         Event_Challenge_Step(uuid, challenge.indices);
         return LiarIs.Inconclusive;
+    }
+
+
+    /*====================================================================
+                            Constant Helpers
+    ====================================================================*/
+    // Returns the indices for the next step in the verification. Branching factor hardcoded
+    function getBranchIndices(left, right) constant internal returns (uint[9]) {
+        var d = left + right;
+        return [left, d/8, d/4, d*3/8, d/2, d*5/8, d*3/4, d*7/8, right];
+    }
+
+    // Here we find where things went wrong. Returns the index of the branch array where things first went wrong.
+    function findDifference(bytes32 uuid) constant internal returns(uint8 diffIdx) {
+        Challenge challenge = challenges[uuid];
+        var indices = challenge.indices;
+
+        for (uint i = 1; i < challenge.lbranches.length-1; i++) {
+            if (challenge.lbranches[i] != challenge.rbranches[i]) {
+                // We want to find the first place where the calculations diverged, then take the latest place where calculations are still agreed upon
+                return i;
+            }
+        }
+
+        // Variables not set cause nothing in the branches were different. Zoom to rightmost branch.
+        // This will work as long as the threshold is bigger than branching factor
+        return indices.length-1;
     }
 
     // we can abstract this to a function, and to do optional function args we take in contract address where contract has one method to call
