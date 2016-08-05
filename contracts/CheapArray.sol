@@ -19,4 +19,8 @@ library CheapArray {
     function clear() {
         n = 0;
     }
+
+    function isEmpty() constant {
+        return n ==0;
+    }
 }
