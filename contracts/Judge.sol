@@ -5,7 +5,6 @@ import 'JudgeSubscriber.sol';
 contract Judge {
     mapping(bytes32 => Challenge) challenges;
     mapping(bytes32 => Session) sessions;
-    enum LiarIs {Inconclusive, Insurer, Challenger, Both};
     event Event_Challenge_Step(uint uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
     event Event_Challenge_Ended(uint uuid, address liar);
 
