@@ -111,7 +111,7 @@ contract Judge {
         if (numOperations <= session.threshold) {
             var computed = repeatedlySha(newStart, newEnd, newProposed, numOperations);
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
-            var liar = getResult(computed, newEnd, newProposed);
+            var liar = getJudgement(computed, newEnd, newProposed);
             endSession(uuid, liar);
         }
 
@@ -170,7 +170,7 @@ contract Judge {
     }
 
     // Determines the dishonest participant(s)
-    function getResult(bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(address liar){
+    function getJudgement(bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(address liar){
         if (computed != end && computed != proposed){ 
             return 0x0;
         }
