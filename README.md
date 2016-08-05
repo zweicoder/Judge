@@ -1,2 +1,2 @@
 # Judge
-Interactive Verifier for Ethereum
+Interactive Verifier for Ethereum. Currently only supports verification for SHA, but may be abstracted to accept other functions (probably sequential functions) through external contract calls.
