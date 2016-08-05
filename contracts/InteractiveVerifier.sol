@@ -8,16 +8,17 @@ contract InteractiveVerifier {
     event Event_Challenge_Step(uint uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
     event Event_Challenge_Ended(uint uuid, bytes32 result, address winner);
 
+
     struct Session {
         bool initialized;
-        address leftPlayer; // Insurer
+        address insurer; // Insurer
         address challenger; // Challenger
         uint threshold;
     }
 
     struct Challenge {
-        bytes32 left;
-        bytes32 right;
+        bytes32 start;
+        bytes32 end;
         uint[9] indices; // hardcode branching factor for now
         using CheapArray for bytes32[] lbranches;
         using CheapArray for bytes32[] rbranches;
@@ -31,12 +32,16 @@ contract InteractiveVerifier {
 
     modifier onlyValidInput(bytes32 uuid,bytes32[] branches) {
         Challenge challenge = challenges[uuid];
+        if (branches.length != 9 ) throw; // For now just throw if input is invalid. CheapArray needs some sort of constructor
         // Throw if input =/= consensus
         if (branches[0] != challenge.start) throw;
         if (branches[branches.length-1] != challenge.end && branches[branches.length-1] != challenge.proposed) throw;
         _
     }
-    
+
+    /*====================================================================
+                        External / Public Functions
+    ====================================================================*/
     // Called by others to initialize challenge
     function initChallenge(bytes32 uuid, bytes32 start, bytes32 end, bytes32 proposed, address insurer, address challenger, uint numOperations, uint threshold) external {
         // Not allowing ongoing sessions to be overwritten. Sessions are currenlty implemented to be 1v1, contracts will have to manage cases for multiple challengers
@@ -50,8 +55,7 @@ contract InteractiveVerifier {
     }
 
     // Method that players of the interactive verification game will call during an ongoing session
-    function doChallenge(bytes32 uuid, bytes32[] branches) external {
-        if (branches.length != 9 ) throw; // For now just throw if input is invalid. CheapArray needs some sort of constructor
+    function doChallenge(bytes32 uuid, bytes32[] branches) external onlyValidInput(uuid, branches) onlySessionPlayers(uuid) {
         if (!updateMoves(uuid)) return; // Wait for the other player. TODO check if time expired
 
         // Both have submitted the X number of branches
@@ -59,6 +63,10 @@ contract InteractiveVerifier {
         updateChallenge(uuid, difference);
     }
 
+
+    /*====================================================================
+                        Internal Functions / Helpers
+    ====================================================================*/
     // Branching factor hardcoded
     function getBranchIndices(left, right) internal returns (uint[9]) {
         var d = left + right;
@@ -66,7 +74,7 @@ contract InteractiveVerifier {
     }
 
     // Update storage with a player's move (the branches). Returns true if both players have submitted their move.
-    function updateMoves(bytes32 uuid, bytes32[] branches) internal onlyValidInput(uuid) onlySessionPlayers(uuid) returns(bool) {        
+    function updateMoves(bytes32 uuid, bytes32[] branches) internal returns(bool) {        
         Session session = sessions[uuid];
         Challenge challenge = challenges[uuid];
 
@@ -82,7 +90,7 @@ contract InteractiveVerifier {
     }
 
     // Here we find where things went wrong. Returns the index of the branch array where things first went wrong.
-    function findDifference(bytes32 uuid) internal returns(uint8 diffIdx) {
+    function findDifference(bytes32 uuid) constant internal returns(uint8 diffIdx) {
         Challenge challenge = challenges[uuid];
         var indices = challenge.indices;
 
@@ -110,20 +118,7 @@ contract InteractiveVerifier {
         if (numOperations <= session.threshold) {
             var computed = repeatedlySha(newStart, newEnd, newProposed, numOperations);
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
-            var result;
-            var liar;
-            if (computed != newEnd && computed != newProposed){ 
-                result = LiarIs.Both;
-                liar = 0x0;
-            }
-            else if (computed != newEnd){
-                result = LiarIs.Insurer;
-                liar = session.insurer;
-            }
-            else if (computed != newProposed){
-                result = LiarIs.Challenger;
-                liar = session.challenger;
-            } 
+            var (result, liar) = getResult(computed, newEnd, newProposed);
             Event_Challenge_Ended(uuid, result, liar);
             session.initialized = false; // Cheap clean up just in case. Maybe spend some gas to prevent bloat / pollution?
             return result;
@@ -144,7 +139,7 @@ contract InteractiveVerifier {
 
     // we can abstract this to a function, and to do optional function args we take in contract address where contract has one method to call
     // Repeatedly sha start for n times and returns the result 
-    function repeatedlySha(bytes32 start, bytes32 end, uint n) constant internal return(bytes32) {
+    function repeatedlySha(bytes32 start, bytes32 end, uint n) constant internal returns(bytes32) {
         // 65  gas per sha, gas price is around 0.000 000 0225, so around 1 million shas will cost 0.1 eth
         // 1 million shas ~= 1.5s on my computer
         var temp = start;
@@ -153,5 +148,18 @@ contract InteractiveVerifier {
         }
 
         return temp;
+    }
+
+    // Determines the dishonest participant(s)
+    function getResult(bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(LiarIs, address){
+        if (computed != end && computed != proposed){ 
+            return (LiarIs.Both, 0x0);
+        }
+        if (computed != end){
+            return (LiarIs.Insurer, insurer);
+        }
+        if (computed != proposed){
+            return (LiarIs.Challenger, challenger);
+        } 
     }
 }
