@@ -1,26 +1,29 @@
 // http://ethereum.stackexchange.com/questions/3373/how-to-clear-large-arrays-without-blowing-the-gas-limit
 library CheapArray {
-    uint n;
+    struct Data {
+        bytes[] elems;
+        uint n;
+    }
 
-    function insertAll(bytes[] storage elems, bytes[] values) {
+    function insertAll(Data storage self, bytes[] values) internal {
         for (uint i=0; i < values.length; i++) {
-            insert(elems, values[i])
+            insert(self, values[i]);
         }
     }
 
-    function insert(bytes[] elems, bytes value) {
-        if(n == elems.length) {
-            n = elems.push(value);
+    function insert(Data storage self, bytes value) internal {
+        if(self.n == self.elems.length) {
+            self.n = self.elems.push(value);
             return;
         }
-        elems[n] = value;
+        self.elems[self.n] = value;
     }
 
-    function clear() {
-        n = 0;
+    function clear(Data storage self) internal {
+        self.n = 0;
     }
 
-    function isEmpty() constant {
-        return n ==0;
+    function isEmpty(Data storage self) constant returns(bool) {
+        return self.n ==0;
     }
 }
