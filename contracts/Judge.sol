@@ -106,10 +106,10 @@ contract Judge {
     function updateChallenge(bytes32 uuid, uint diffIdx) internal {
         Challenge challenge = challenges[uuid];
         Session session = sessions[uuid];
-        var (indices, lbranches, rbranches) = (challenge.indices, challenge.lbranches, challenge.rbranches);
-        var (newLeftIdx, newRightIdx) = (indices[diffIdx-1], indices[diffIdx]);
+        
+        var (newLeftIdx, newRightIdx) = (challenge.indices[diffIdx-1], challenge.indices[diffIdx]);
         var numOperations = newRightIdx - newLeftIdx;
-        var (newStart, newEnd, newProposed) = (lbranches.get(diffIdx-1), lbranches.get(diffIdx), rbranches.get(diffIdx));
+        var (newStart, newEnd, newProposed) = (challenge.lbranches.get(diffIdx-1), challenge.lbranches.get(diffIdx), challenge.rbranches.get(diffIdx));
 
         if (numOperations <= session.threshold) {
             var computed = repeatedlySha(newStart, numOperations);
