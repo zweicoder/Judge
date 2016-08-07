@@ -3,11 +3,12 @@ import 'JudgeSubscriber.sol';
 
 // Contract to handle interactive verification sessions mainly for tedious repeated operations. Should only handle ongoing sessions
 contract Judge {
+    uint constant TIMEOUT_PERIOD = 3 minutes; // Maybe allow configurable cause some computations might take super long. 
     mapping(bytes32 => Challenge) challenges;
     mapping(bytes32 => Session) sessions;
-    event Event_Challenge_Step(uint uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
-    event Event_Challenge_Ended(uint uuid, address liar);
-    constant uint TIMEOUT_PERIOD = 3 minutes; // Maybe allow configurable cause some computations might take super long. 
+    event Event_Challenge_Step(bytes32 uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
+    event Event_Challenge_Ended(bytes32 uuid, address liar);
+    using CheapArray for CheapArray.Array;
 
 
     /*====================================================================
@@ -27,8 +28,8 @@ contract Judge {
         bytes32 end;
         bytes32 proposed;
         uint[9] indices; // hardcode branching factor for now
-        using CheapArray for bytes32[] lbranches;
-        using CheapArray for bytes32[] rbranches;
+        CheapArray.Array lbranches;
+        CheapArray.Array rbranches;
     }
 
     modifier onlySessionPlayers(bytes32 uuid) {
@@ -37,7 +38,7 @@ contract Judge {
         _
     }
 
-    modifier onlyValidInput(bytes32 uuid,bytes32[] branches) {
+    modifier onlyValidInput(bytes32 uuid, bytes32[] branches) {
         Challenge challenge = challenges[uuid];
         if (branches.length != 9 ) throw; // For now just throw if input is invalid. CheapArray needs some sort of constructor
         // Throw if input =/= consensus
@@ -57,7 +58,9 @@ contract Judge {
         if (sessions[uuid].initialized) throw;
 
         // Initialize Challenge with predefined consensus
-        challenges[uuid] = Challenge(start, end, proposed);
+        challenges[uuid].start = start;
+        challenges[uuid].end = end;
+        challenges[uuid].proposed = proposed;
         sessions[uuid] = Session(true, subscriber, insurer, challenger, threshold, now);
         // Emit event to request for the result at each specified index
         Event_Challenge_Step(uuid, getBranchIndices(0, numOperations - 1));
@@ -66,12 +69,12 @@ contract Judge {
     // Method that players of the interactive verification game will call during an ongoing session
     function doChallenge(bytes32 uuid, bytes32[] branches) external onlyValidInput(uuid, branches) onlySessionPlayers(uuid) {
         Session session = sessions[uuid];
-        if (now > session.startTime + TIMEOUT_PERIOD) {
+        if (now > session.lastActive + TIMEOUT_PERIOD) {
             // By default if no one submits the insurer will win
-            var liar = challenge[uuid].rbranches.isEmpty() ? challenger : insurer;
+            var liar = challenges[uuid].rbranches.isEmpty() ? session.challenger : session.insurer;
             endSession(uuid, liar);
         }
-        if (!updateMoves(uuid)) return; // Wait for the other player. TODO check if time expired
+        if (!updateMoves(uuid, branches)) return; // Wait for the other player. TODO check if time expired
 
         // Both have submitted the X number of branches
         var difference = findDifference(uuid);
@@ -91,7 +94,7 @@ contract Judge {
         if (msg.sender == session.insurer) {
             challenge.lbranches.insertAll(branches);
         } 
-        else if (msg.sender == session.rightPlayer) {
+        else if (msg.sender == session.challenger) {
             challenge.rbranches.insertAll(branches);
         }
 
@@ -103,15 +106,15 @@ contract Judge {
     function updateChallenge(bytes32 uuid, uint diffIdx) internal {
         Challenge challenge = challenges[uuid];
         Session session = sessions[uuid];
-        var (start, end, proposed, indices, lbranches, rbranches) = challenge;
-        var (newLeftIdx, newRightIdx) = indices[diffIdx-1], indices[diffIdx];
+        var (indices, lbranches, rbranches) = (challenge.indices, challenge.lbranches, challenge.rbranches);
+        var (newLeftIdx, newRightIdx) = (indices[diffIdx-1], indices[diffIdx]);
         var numOperations = newRightIdx - newLeftIdx;
-        var (newStart, newEnd, newProposed) = (lbranches[diffIdx-1], lbranches[diffIdx], rbranches[diffIdx]);
+        var (newStart, newEnd, newProposed) = (lbranches.get(diffIdx-1), lbranches.get(diffIdx), rbranches.get(diffIdx));
 
         if (numOperations <= session.threshold) {
             var computed = repeatedlySha(newStart, newEnd, newProposed, numOperations);
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
-            var liar = getJudgement(computed, newEnd, newProposed);
+            var liar = getJudgement(uuid, computed, newEnd, newProposed);
             endSession(uuid, liar);
         }
 
@@ -136,7 +139,7 @@ contract Judge {
                             Constant Helpers
     ====================================================================*/
     // Returns the indices for the next step in the verification. Branching factor hardcoded
-    function getBranchIndices(left, right) constant internal returns (uint[9]) {
+    function getBranchIndices(uint left,uint right) constant internal returns (uint[9]) {
         var d = left + right;
         return [left, d/8, d/4, d*3/8, d/2, d*5/8, d*3/4, d*7/8, right];
     }
@@ -147,7 +150,7 @@ contract Judge {
         var indices = challenge.indices;
 
         for (uint i = 1; i < challenge.lbranches.length-1; i++) {
-            if (challenge.lbranches[i] != challenge.rbranches[i]) {
+            if (challenge.lbranches.get(i) != challenge.rbranches.get(i)) {
                 // We want to find the first place where the calculations diverged, then take the latest place where calculations are still agreed upon
                 return i;
             }
@@ -170,11 +173,11 @@ contract Judge {
     }
 
     // Determines the dishonest participant(s)
-    function getJudgement(bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(address liar){
+    function getJudgement(bytes32 uuid, bytes32 computed, bytes32 end, bytes32 proposed) constant internal returns(address liar){
         if (computed != end && computed != proposed){ 
             return 0x0;
         }
-        return computed != end ? insurer : challenger;
+        return computed != end ? sessions[uuid].insurer : sessions[uuid].challenger;
     }
 
     function endSession(bytes32 uuid, address liar) constant internal {
