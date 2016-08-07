@@ -112,7 +112,7 @@ contract Judge {
         var (newStart, newEnd, newProposed) = (lbranches.get(diffIdx-1), lbranches.get(diffIdx), rbranches.get(diffIdx));
 
         if (numOperations <= session.threshold) {
-            var computed = repeatedlySha(newStart, newEnd, newProposed, numOperations);
+            var computed = repeatedlySha(newStart, numOperations);
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
             var liar = getJudgement(uuid, computed, newEnd, newProposed);
             endSession(uuid, liar);
@@ -163,7 +163,7 @@ contract Judge {
 
     // we can abstract this to a function, and to do optional function args we take in contract address where contract has one method to call
     // Repeatedly sha start for n times and returns the result 
-    function repeatedlySha(bytes32 start, bytes32 end, uint n) constant internal returns(bytes32) {
+    function repeatedlySha(bytes32 start, uint n) constant internal returns(bytes32) {
         var temp = start;
         for (uint i = 0; i < n; i++){
             temp = sha3(temp);
