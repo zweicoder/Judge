@@ -19,11 +19,19 @@ library CheapArray {
         self.elems[self.n] = value;
     }
 
+    function get(Array storage self, uint i) constant returns(bytes32){
+        return self.elems[i];
+    }
+
     function clear(Array storage self) internal {
         self.n = 0;
     }
 
     function isEmpty(Array storage self) constant returns(bool) {
         return self.n ==0;
+    }
+
+    function getSize(Array storage self) constant returns(uint) {
+        return self.elems.length;
     }
 }

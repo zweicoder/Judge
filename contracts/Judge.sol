@@ -149,7 +149,7 @@ contract Judge {
         Challenge challenge = challenges[uuid];
         var indices = challenge.indices;
 
-        for (uint i = 1; i < challenge.lbranches.length-1; i++) {
+        for (uint i = 1; i < challenge.lbranches.getSize()-1; i++) {
             if (challenge.lbranches.get(i) != challenge.rbranches.get(i)) {
                 // We want to find the first place where the calculations diverged, then take the latest place where calculations are still agreed upon
                 return i;
