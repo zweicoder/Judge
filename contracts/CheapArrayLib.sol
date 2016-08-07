@@ -1,5 +1,5 @@
 // http://ethereum.stackexchange.com/questions/3373/how-to-clear-large-arrays-without-blowing-the-gas-limit
-library CheapArray {
+library CheapArrayLib {
     struct Array {
         bytes32[] elems;
         uint n;

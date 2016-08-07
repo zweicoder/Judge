@@ -1,4 +1,4 @@
-import 'CheapArray.sol';
+import 'CheapArrayLib.sol';
 import 'JudgeSubscriber.sol';
 
 // Contract to handle interactive verification sessions mainly for tedious repeated operations. Should only handle ongoing sessions
@@ -8,7 +8,7 @@ contract Judge {
     mapping(bytes32 => Session) sessions;
     event Event_Challenge_Step(bytes32 uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
     event Event_Challenge_Ended(bytes32 uuid, address liar);
-    using CheapArray for CheapArray.Array;
+    using CheapArrayLib for CheapArrayLib.Array;
 
 
     /*====================================================================
@@ -28,8 +28,8 @@ contract Judge {
         bytes32 end;
         bytes32 proposed;
         uint[9] indices; // hardcode branching factor for now
-        CheapArray.Array lbranches;
-        CheapArray.Array rbranches;
+        CheapArrayLib.Array lbranches;
+        CheapArrayLib.Array rbranches;
     }
 
     modifier onlySessionPlayers(bytes32 uuid) {
@@ -130,7 +130,7 @@ contract Judge {
         challenge.proposed = newProposed;
         challenge.lbranches.clear();
         challenge.rbranches.clear();
-        challenge.indices = getBranchIndices(newLeftIdx, newRightIdx); // TODO use CheapArray
+        challenge.indices = getBranchIndices(newLeftIdx, newRightIdx); 
 
         // Request for new indices
         Event_Challenge_Step(uuid, challenge.indices);
