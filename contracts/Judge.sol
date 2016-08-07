@@ -145,7 +145,7 @@ contract Judge {
     }
 
     // Here we find where things went wrong. Returns the index of the branch array where things first went wrong.
-    function findDifference(bytes32 uuid) constant internal returns(uint8 diffIdx) {
+    function findDifference(bytes32 uuid) constant internal returns(uint diffIdx) {
         Challenge challenge = challenges[uuid];
         var indices = challenge.indices;
 

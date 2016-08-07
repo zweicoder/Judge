@@ -1,3 +1,3 @@
 contract JudgeSubscriber {
-    function judgeCallback(uint uuid, address liar) external;
+    function judgeCallback(bytes32 uuid, address liar) external;
 }
