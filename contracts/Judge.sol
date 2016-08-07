@@ -73,6 +73,7 @@ contract Judge {
             // By default if no one submits the insurer will win
             var liar = challenges[uuid].rbranches.isEmpty() ? session.challenger : session.insurer;
             endSession(uuid, liar);
+            return;
         }
         if (!updateMoves(uuid, branches)) return; // Wait for the other player. TODO check if time expired
 
@@ -116,6 +117,7 @@ contract Judge {
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
             var liar = getJudgement(uuid, computed, newEnd, newProposed);
             endSession(uuid, liar);
+            return;
         }
 
         // Update storage with new consensus
