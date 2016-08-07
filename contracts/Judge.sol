@@ -47,6 +47,7 @@ contract Judge {
         _
     }
 
+    function Judge() {}
 
     /*====================================================================
                         External / Public Functions
@@ -83,6 +84,9 @@ contract Judge {
         keepSessionAlive(uuid);
     }
 
+    function () {
+        throw;
+    }
 
     /*====================================================================
                         Internal Functions
