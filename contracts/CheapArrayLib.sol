@@ -16,7 +16,7 @@ library CheapArrayLib {
             self.active = self.elems.push(value);
             return;
         }
-        self.elems[self.active] = value;
+        self.elems[self.active++] = value;
     }
 
     function get(Array storage self, uint i) constant returns(bytes32){

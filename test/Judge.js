@@ -1,0 +1,3 @@
+contract('Judge', (accounts)=>{
+    
+})
