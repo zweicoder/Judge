@@ -53,7 +53,7 @@ contract('CheapArrayLib', (accounts) => {
             .then(() => {
                 return cheapArray.insert(anotherItem)
             })
-            .then(checkSizeEquals(cheapArray, 4))
+            .then(checkSizeEquals(cheapArray, elems.length + 1))
             .then(checkIsEmpty(cheapArray, false))
             .then(() => {
                 return Promise.all(
