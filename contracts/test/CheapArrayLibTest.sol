@@ -1,4 +1,4 @@
-import 'CheapArrayLib.sol';
+import '../CheapArrayLib.sol';
 
 contract CheapArrayLibTest {
     using CheapArrayLib for CheapArrayLib.Array;
