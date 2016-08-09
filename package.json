@@ -1,0 +1,28 @@
+{
+  "name": "judge",
+  "version": "1.0.0",
+  "description": "Interactive Verifier for Ethereum. Currently only supports verification for SHA, but may be abstracted to accept other functions (probably sequential functions) through external contract calls.",
+  "main": "truffle.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "buildTest": "babel testSrc -d test -s"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zweicoder/Judge.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zweicoder/Judge/issues"
+  },
+  "homepage": "https://github.com/zweicoder/Judge#readme",
+  "devDependencies": {
+    "babel": "^6.5.2",
+    "babel-cli": "^6.11.4",
+    "babel-preset-es2015": "^6.13.2"
+  }
+}
