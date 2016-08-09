@@ -96,6 +96,11 @@ contract Judge {
         throw;
     }
 
+    function getChallenge(bytes32 uuid) constant returns(bytes32 start, bytes32 end, bytes32 proposed, uint[9] indices, bytes32[] lbranches, bytes32[] rbranches){
+        Challenge c = challenges[uuid];
+        return (c.start, c.end, c.proposed, c.indices, c.lbranches.getAll(), c.rbranches.getAll());
+    }
+
     /*====================================================================
                         Internal Functions
     ====================================================================*/
