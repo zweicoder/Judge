@@ -7,8 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "buildTest": "babel testSrc -d test -s"
+    "test": "buildTest && truffle test",
+    "build:test": "babel testSrc -d test -s",
+    "deploy:test": "export NODE_ENV=test && truffle migrate --reset"
   },
   "repository": {
     "type": "git",
