@@ -5,6 +5,12 @@ contract('CheapArrayLib', (accounts) => {
         const cheapArray = CheapArrayLibTest.deployed()
         return checkSizeEquals(cheapArray, 0)()
             .then(checkIsEmpty(cheapArray, true))
+            .then(()=>{
+                return cheapArray.getAll.call()
+            })
+            .then((res)=>{
+                assert.deepEqual(res, [])
+            })
     })
 
     it('should insertAll elements', () => {
@@ -49,6 +55,7 @@ contract('CheapArrayLib', (accounts) => {
     it('should still insert properly after clearing', () => {
         const cheapArray = CheapArrayLibTest.deployed()
         const anotherItem = web3.sha3('4')
+        const allItems = elems.concat(anotherItem)
         return cheapArray.insertAll(elems)
             .then(() => {
                 return cheapArray.insert(anotherItem)
@@ -57,13 +64,23 @@ contract('CheapArrayLib', (accounts) => {
             .then(checkIsEmpty(cheapArray, false))
             .then(() => {
                 return Promise.all(
-                    elems.concat(anotherItem).map((e, idx) => {
+                    allItems.map((e, idx) => {
                         return cheapArray.get.call(idx)
                             .then((res) => {
                                 assert.equal(e, res)
                             })
                     })
                 )
+            })
+    })
+
+    it('should return all elements with getAll()', () => {
+        const cheapArray = CheapArrayLibTest.deployed()
+        const anotherItem = web3.sha3('4')
+        const allItems = elems.concat(anotherItem)
+        return cheapArray.getAll.call()
+            .then((res)=>{
+                assert.deepEqual(res, allItems)
             })
     })
 })

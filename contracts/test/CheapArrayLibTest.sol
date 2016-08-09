@@ -14,9 +14,13 @@ contract CheapArrayLibTest {
         arr.insert(value);
     }
 
-
     function get(uint i) constant returns (bytes32) {
         return arr.get(i);
+    }
+
+    function getAll() constant returns (bytes32[]) {
+        bytes32[] memory elems = arr.getAll();
+        return elems;
     }
 
     function clear() {

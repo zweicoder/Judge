@@ -19,22 +19,30 @@ library CheapArrayLib {
         self.elems[self.active++] = value;
     }
 
-    function get(Array storage self, uint i) constant returns(bytes32){
+    function get(Array storage self, uint i) constant internal returns(bytes32){
         if (i >= getSize(self)){
             throw;
         }
         return self.elems[i];
     }
 
+    function getAll(Array storage self) constant internal returns(bytes32[]) {
+        bytes32[] memory ret = new bytes32[](getSize(self));
+        for (uint i = 0; i < getSize(self); i++) {
+            ret[i] = self.elems[i];
+        }
+        return ret;
+    }
+
     function clear(Array storage self) internal {
         self.active = 0;
     }
 
-    function isEmpty(Array storage self) constant returns(bool) {
+    function isEmpty(Array storage self) constant internal returns(bool) {
         return getSize(self) ==0;
     }
 
-    function getSize(Array storage self) constant returns(uint) {
+    function getSize(Array storage self) constant internal returns(uint) {
         return self.active;
     }
 }
