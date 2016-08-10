@@ -8,6 +8,7 @@ contract Judge {
     mapping(bytes32 => Session) sessions;
     event Event_Challenge_Step(bytes32 uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
     event Event_Challenge_Ended(bytes32 uuid, address liar);  
+    event Log(string log);
     using CheapArrayLib for CheapArrayLib.Array;
 
 
@@ -69,6 +70,7 @@ contract Judge {
         sessions[uuid] = Session(true, subscriber, insurer, challenger, threshold, now);
         // Emit event to request for the result at each specified index
         Event_Challenge_Step(uuid, indices);
+        Log('initChallenge success');
     }
 
     // Method that players of the interactive verification game will call during an ongoing session
@@ -87,6 +89,23 @@ contract Judge {
         var difference = findDifference(uuid);
         updateChallenge(uuid, difference); // RECURSIVE CALL to contract possible to drain $$$??
         keepSessionAlive(uuid);
+    }
+
+    function test(bytes32 uuid, bytes32[] branches) external  onlyValidInput(uuid, branches) onlySessionPlayers(uuid){
+        Log('test');
+        Session session = sessions[uuid];
+        if (!session.initialized) return;
+        Log('Checking for timeout');
+        if (now > session.lastActive + TIMEOUT_PERIOD) {
+            // By default if no one submits the insurer will win
+            var liar = challenges[uuid].rbranches.isEmpty() ? session.challenger : session.insurer;
+            endSession(uuid, liar);
+            return;
+        }
+        Log('Updating moves..');
+        if (!updateMoves(uuid, branches)) return; // Wait for the other player. TODO check if time expired
+        //TODO FIX PROBLEM WHY DID IT MOVE PAST RETURN? WHY  IS FIND DIFFERENCE THROWING
+        var difference = findDifference(uuid);
     }
 
     function () {
@@ -124,7 +143,7 @@ contract Judge {
         }
 
         // TODO confirm that storage is modified via reference 
-        return challenge.lbranches.isEmpty() || challenge.rbranches.isEmpty();
+        return !(challenge.lbranches.isEmpty() || challenge.rbranches.isEmpty());
     }
 
     // Find out who's correct if below threshold, else update state variables and request new indices
