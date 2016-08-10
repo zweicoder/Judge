@@ -60,14 +60,16 @@ contract Judge {
         if (sessions[uuid].initialized) throw;
 
         // Initialize Challenge with predefined consensus
+        var indices = getBranchIndices(0, numOperations - 1);
         challenges[uuid].start = start;
         challenges[uuid].end = end;
         challenges[uuid].proposed = proposed;
+        challenges[uuid].indices = indices;
         challenges[uuid].lbranches.clear(); // just in case
         challenges[uuid].rbranches.clear();
         sessions[uuid] = Session(true, subscriber, insurer, challenger, threshold, now);
         // Emit event to request for the result at each specified index
-        Event_Challenge_Step(uuid, getBranchIndices(0, numOperations - 1));
+        Event_Challenge_Step(uuid, indices);
         logState(uuid);
     }
 
