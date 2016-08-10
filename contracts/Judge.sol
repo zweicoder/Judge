@@ -8,7 +8,6 @@ contract Judge {
     mapping(bytes32 => Session) sessions;
     event Event_Challenge_Step(bytes32 uuid, uint[9] indices); // This event is mainly to alert stakeholders to submit the indices requested
     event Event_Challenge_Ended(bytes32 uuid, address liar);  
-    event Log_Challenge(bytes32 start, bytes32 end, bytes32 proposed, uint[9] indices, bytes32[] lbranches, bytes32[] rbranches);
     using CheapArrayLib for CheapArrayLib.Array;
 
 
@@ -70,7 +69,6 @@ contract Judge {
         sessions[uuid] = Session(true, subscriber, insurer, challenger, threshold, now);
         // Emit event to request for the result at each specified index
         Event_Challenge_Step(uuid, indices);
-        logState(uuid);
     }
 
     // Method that players of the interactive verification game will call during an ongoing session
@@ -166,11 +164,6 @@ contract Judge {
     /*====================================================================
                             Constant Helpers
     ====================================================================*/
-    function logState(bytes32 uuid) constant internal {
-        Challenge c = challenges[uuid];
-        Log_Challenge(c.start, c.end, c.proposed, c.indices, c.lbranches.getAll(), c.rbranches.getAll());
-    }
-
     // Returns the indices for the next step in the verification. Branching factor hardcoded
     function getBranchIndices(uint left,uint right) constant internal returns (uint[9]) {
         var d = left + right;
