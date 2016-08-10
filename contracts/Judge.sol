@@ -88,9 +88,6 @@ contract Judge {
         updateChallenge(uuid, difference); // RECURSIVE CALL to contract possible to drain $$$??
         keepSessionAlive(uuid);
     }
-    function test(bytes32[] arr) returns(bytes32[]){
-        return arr;
-    }
 
     function () {
         throw;
@@ -99,6 +96,16 @@ contract Judge {
     function getChallenge(bytes32 uuid) constant returns(bytes32 start, bytes32 end, bytes32 proposed, uint[9] indices, bytes32[] lbranches, bytes32[] rbranches){
         Challenge c = challenges[uuid];
         return (c.start, c.end, c.proposed, c.indices, c.lbranches.getAll(), c.rbranches.getAll());
+    }
+
+    function getSession(bytes32 uuid) constant returns(bool initialized,
+        JudgeSubscriber subscriber,
+        address insurer,
+        address challenger,
+        uint threshold,
+        uint lastActive) {
+        Session s = sessions[uuid];
+        return (s.initialized, s.subscriber, s.insurer, s.challenger, s.threshold, s.lastActive);
     }
 
     /*====================================================================
