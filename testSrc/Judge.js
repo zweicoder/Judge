@@ -19,7 +19,7 @@ contract('Judge', (accounts) => {
             })
             .then((res) => {
                 const [actualStart, actualEnd, actualProposed, actualIndices, actualLbranches, actualRbranches] = res
-                assert.equal(actualStart, end)
+                assert.equal(actualStart, start)
                 assert.equal(actualEnd, end)
                 assert.equal(actualProposed, proposed)
                 assert.deepEqual(actualIndices.map((elem) => elem.toNumber()), Array(9).fill(0), 'Indices should be bytes32[9]')

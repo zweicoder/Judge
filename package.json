@@ -9,6 +9,7 @@
   "scripts": {
     "test": "buildTest && truffle test",
     "build:test": "babel testSrc -d test -s",
+    "watch:test": "npm run build:test -- --watch",
     "deploy:test": "export NODE_ENV=test && truffle migrate --reset"
   },
   "repository": {
