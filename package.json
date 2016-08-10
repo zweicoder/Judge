@@ -7,8 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "buildTest && truffle test",
-    "build:test": "babel testSrc -d test -s",
+    "test": "truffle test",
+    "clean:test": "rm -rf test",
+    "build:test": "babel test.es6/ -d test/ -s",
     "watch:test": "npm run build:test -- --watch",
     "deploy:test": "export NODE_ENV=test && truffle migrate --reset"
   },
