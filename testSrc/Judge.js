@@ -4,14 +4,14 @@ contract('Judge', (accounts) => {
     challenger = accounts[1],
     start = web3.sha3('test'),
     end = '0xbca242572c2516eaac84033698f0c015b8b882d0d214c65ce57281df1dcf27e7',
-    proposed = '0xbca242572c2516eaac84033698f0c015b8b882d0d214c65ce57281df1dc11111',
-    numOperations = 1000,
+    proposed = '0x4815df9e96c597ee2a467ce5c7f4f99609227d02406a887860f0e8b74627c1e4',
+    numOperations = 1001,
     threshold = 10;
   const initialChallengeState = {
     start,
     end,
     proposed,
-    indices: Array(9).fill(0),
+    indices: getIndices(0, numOperations - 1),
     lbranches: [],
     rbranches: []
   }
@@ -31,10 +31,22 @@ contract('Judge', (accounts) => {
       initialSessionState, {
         subscriber
       })
-    return judge.initChallenge(uuid, subscriber, insurer, challenger, start, end, proposed, numOperations, threshold)
-      .then(checkChallengeEquals(judge, uuid,
-        initialChallengeState))
+    const event = judge.Event_Challenge_Step()
+    const p1 = new Promise((resolve) => {
+      event.watch((err, res) => {
+        const {uuid: actualUuid, indices:actualIndices} = res.args
+        assert.equal(actualUuid, uuid, 'Event should be emitted')
+        assert.deepEqual(convertBigNumbers(actualIndices), initialChallengeState.indices, 'Indices should be requested')
+        event.stopWatching()
+        resolve()
+      })
+    })
+
+    const p2 = judge.initChallenge(uuid, subscriber, insurer, challenger, start, end, proposed, numOperations, threshold)
+      .then(checkChallengeEquals(judge, uuid, initialChallengeState))
       .then(checkSessionEquals(judge, uuid, session))
+
+    return Promise.all([p1, p2])
 
   })
 
@@ -121,4 +133,13 @@ function rpc(method, arg) {
       resolve(result)
     })
   })
+}
+
+function getIndices(left, right) {
+  const d = left + right;
+  return [left, d / 8, d / 4, d * 3 / 8, d / 2, d * 5 / 8, d * 3 / 4, d * 7 / 8, right];
+}
+
+function convertBigNumbers(arr) {
+  return arr.map((elem) => elem.toNumber())
 }
