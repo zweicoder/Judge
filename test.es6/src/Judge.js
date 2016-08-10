@@ -26,6 +26,11 @@ contract('Judge', (accounts) => {
     initialized: true,
     lastActive: now
   }
+
+  function initDefaultChallenge(judge, subscriber) {
+    return judge.initChallenge(uuid, subscriber, insurer, challenger, start, end, proposed, numOperations, threshold)
+  }
+
   contract('#initChallenge', () => {
     it('should properly initialize a challenge', () => {
       const {judge, subscriber} = getDeployed()
@@ -44,7 +49,7 @@ contract('Judge', (accounts) => {
         })
       })
 
-      const p2 = judge.initChallenge(uuid, subscriber, insurer, challenger, start, end, proposed, numOperations, threshold)
+      const p2 = initDefaultChallenge(judge, subscriber)
         .then(helpers.checkChallengeEquals(judge, uuid, initialChallengeState))
         .then(helpers.checkSessionEquals(judge, uuid, session))
 
@@ -59,8 +64,9 @@ contract('Judge', (accounts) => {
         })
       const badAddress = accounts[3]
       return judge.initChallenge(uuid, badAddress, badAddress, badAddress, end, start, start, 999999, 123)
-        .catch((e) => {
-          assert.isOk(e, 'It should throw an invalid JUMP error')
+        .then(() => {
+        }, (err) => {
+          assert.isOk(err)
         })
         .then(helpers.checkChallengeEquals(judge, uuid, initialChallengeState))
         .then(helpers.checkSessionEquals(judge, uuid, session))
@@ -69,9 +75,67 @@ contract('Judge', (accounts) => {
 
 
   contract('#doChallenge', (accounts) => {
-    it('should something', () => {
-
+    it('should not accept invalid inputs', () => {
+      const {judge, subscriber} = getDeployed()
+      return judge.initChallenge(uuid, subscriber, insurer, challenger, start, end, proposed, numOperations, threshold, {
+        from: challenger
+      })
+        .then(() => {
+          const p1 = helpers.shouldFail(
+            judge.doChallenge(uuid, [start, ...Array(7).fill(0), start]),
+            'Inputs that do not respect the consensus are not accepted'
+          )
+          const p2 = helpers.shouldFail(
+            judge.doChallenge(uuid, [end, ...Array(7).fill(0), end]),
+            'Inputs that do not respect the consensus are not accepted'
+          )
+          const p3 = helpers.shouldFail(
+            judge.doChallenge(uuid, [end, ...Array(7).fill(0), start]),
+            'Inputs that do not respect the consensus are not accepted'
+          )
+          const p4 = helpers.shouldFail(
+            judge.doChallenge(uuid, [start, ...Array(2).fill(0), end]),
+            'Inputs with the wrong length (not 9) are not accepted'
+          )
+          return Promise.all([p1, p2, p3, p4])
+        })
     })
+
+    it('should only work for valid sessions', () => {
+      const {judge, subscriber} = getDeployed()
+      const badUuid = web3.sha3('someOtherUuid')
+      const validInput = [start, ...Array(7).fill(0), end]
+      return helpers.shouldFail(judge.doChallenge(badUuid, validInput))
+    })
+
+    it('should update challenge state', () => {
+      const {judge, subscriber} = getDeployed()
+      const validInput = [start, ...Array(7).fill(0), end]
+      const event = judge.Log()
+      event.watch((err, res) => {
+          console.log(res.args)
+        })
+      return judge.doChallenge(uuid, validInput, {from: insurer})
+        .then(() => {
+          const expectedChallenge = Object.assign({}, initialChallengeState, {lbranches:validInput})
+          return helpers.checkChallengeEquals(judge, uuid, expectedChallenge)
+        })
+        .catch((e)=>{
+          assert.isNotOk(e)
+        })
+    })
+
+    // it('adsasd', () => {
+    //   const {judge, subscriber} = getDeployed()
+    //   const validInput = [start, ...Array(7).fill(0), end]
+    //   const event = judge.Log()
+    //   event.watch((err, res) => {
+    //     console.log(res.args)
+    //   })
+    //   return judge.test(uuid, validInput)
+    // })
+
+    it('should stop accepting inputs after timeout')
   })
 })
 

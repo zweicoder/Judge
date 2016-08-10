@@ -31,6 +31,14 @@ export function checkChallengeEquals(judge, uuid, challenge) {
   }
 }
 
+export function shouldFail(p, message) {
+  return p.then(() => {
+              assert.fail(0, 1, message)
+            }, (err) => {
+              assert.isOk(err, message)
+            })
+}
+
 // Monkey patch testrpc time
 export function setTime(newTime) {
   Date.prototype.getTime = function() {
