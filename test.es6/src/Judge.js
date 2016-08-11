@@ -17,7 +17,7 @@ contract('Judge', (accounts) => {
     lbranches: [],
     rbranches: []
   }
-  const now = 123445678
+  const now = 12345
   helpers.setTime(now)
   const initialSessionState = {
     insurer,
@@ -26,6 +26,7 @@ contract('Judge', (accounts) => {
     initialized: true,
     lastActive: now
   }
+
 
   function initDefaultChallenge(judge, subscriber) {
     return judge.initChallenge(uuid, subscriber, insurer, challenger, start, end, proposed, numOperations, threshold)
@@ -108,22 +109,22 @@ contract('Judge', (accounts) => {
       return helpers.shouldFail(judge.doChallenge(badUuid, validInput))
     })
 
-    it('should update challenge state', () => {
+    it('should wait for the both players', () => {
       const {judge, subscriber} = getDeployed()
       const validInput = [start, ...Array(7).fill(0), end]
-      const event = judge.Log()
-      event.watch((err, res) => {
-          console.log(res.args)
-        })
-      return judge.doChallenge(uuid, validInput, {from: insurer})
+      return judge.doChallenge(uuid, validInput, {
+        from: insurer
+      })
         .then(() => {
-          const expectedChallenge = Object.assign({}, initialChallengeState, {lbranches:validInput})
+          // Challenge state should still be updated
+          const expectedChallenge = Object.assign({}, initialChallengeState, {
+            lbranches: validInput
+          })
           return helpers.checkChallengeEquals(judge, uuid, expectedChallenge)
         })
-        .catch((e)=>{
-          assert.isNotOk(e)
-        })
     })
+
+    it('should only proceed with both player moves')
 
     // it('adsasd', () => {
     //   const {judge, subscriber} = getDeployed()

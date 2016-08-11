@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 export function checkSessionEquals(judge, uuid, session) {
   const {initialized, subscriber, insurer, challenger, threshold, lastActive} = session
   return () => {
@@ -9,8 +11,8 @@ export function checkSessionEquals(judge, uuid, session) {
         assert.equal(actualInsurer, insurer)
         assert.equal(actualChallenger, challenger)
         assert.equal(actualThreshold, threshold)
-      // KIV find good way to check and manipulate time
-      // assert.equal(actualLastActive.toNumber(), lastActive)
+        // KIV find good way to check and manipulate time
+        assert.equal(actualLastActive.toNumber(), lastActive)
       })
   }
 }
@@ -33,17 +35,19 @@ export function checkChallengeEquals(judge, uuid, challenge) {
 
 export function shouldFail(p, message) {
   return p.then(() => {
-              assert.fail(0, 1, message)
-            }, (err) => {
-              assert.isOk(err, message)
-            })
+    assert.fail(0, 1, message)
+  }, (err) => {
+    assert.isOk(err, message)
+  })
 }
+
 
 // Monkey patch testrpc time
 export function setTime(newTime) {
-  Date.prototype.getTime = function() {
-    return newTime;
-  }
+  const baseURL = 'http://localhost:8546'
+  axios.post(baseURL, {
+    time: newTime
+  })
 }
 
 export function rpc(method, arg) {
