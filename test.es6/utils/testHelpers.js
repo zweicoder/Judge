@@ -15,6 +15,7 @@ export function checkSessionEquals(judge, uuid, session) {
       }
 
       assert.deepEqual(actualSession, session)
+      return actualSession
     })
 }
 
@@ -32,6 +33,7 @@ export function checkChallengeEquals(judge, uuid, challenge) {
         rbranches: actualRbranches
       }
       assert.deepEqual(actualChallenge, challenge)
+      return res
     })
 }
 
@@ -56,8 +58,8 @@ export function saveSnapshot() {
   return rpc('evm_snapshot')
 }
 
-export function revertToSnapshot() {
-  return rpc('evm_revert')
+export function revertToSnapshot(id) {
+  return rpc('evm_revert', [id])
 }
 
 export function rpc(method, arg) {
