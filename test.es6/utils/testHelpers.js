@@ -2,35 +2,37 @@ import axios from 'axios'
 
 export function checkSessionEquals(judge, uuid, session) {
   const {initialized, subscriber, insurer, challenger, threshold, lastActive} = session
-  return () => {
-    return judge.getSession.call(uuid)
-      .then((res) => {
-        const [actualInitialized, actualSubscriber, actualInsurer, actualChallenger, actualThreshold, actualLastActive] = res
-        assert.equal(actualInitialized, initialized)
-        assert.equal(actualSubscriber, subscriber)
-        assert.equal(actualInsurer, insurer)
-        assert.equal(actualChallenger, challenger)
-        assert.equal(actualThreshold, threshold)
-        // KIV find good way to check and manipulate time
-        assert.equal(actualLastActive.toNumber(), lastActive)
-      })
-  }
+  return judge.getSession.call(uuid)
+    .then((res) => {
+      const [actualInitialized, actualSubscriber, actualInsurer, actualChallenger, actualThreshold, actualLastActive] = res
+      const actualSession = {
+        initialized: actualInitialized,
+        subscriber: actualSubscriber,
+        insurer: actualInsurer,
+        challenger: actualChallenger,
+        threshold: actualThreshold.toNumber(),
+        lastActive: actualLastActive.toNumber()
+      }
+
+      assert.deepEqual(actualSession, session)
+    })
 }
 
 export function checkChallengeEquals(judge, uuid, challenge) {
   const {start, end, proposed, indices, lbranches, rbranches} = challenge
-  return () => {
-    return judge.getChallenge.call(uuid)
-      .then((res) => {
-        const [actualStart, actualEnd, actualProposed, actualIndices, actualLbranches, actualRbranches] = res
-        assert.equal(actualStart, start)
-        assert.equal(actualEnd, end)
-        assert.equal(actualProposed, proposed)
-        assert.deepEqual(actualIndices.map((elem) => elem.toNumber()), indices)
-        assert.deepEqual(actualLbranches, lbranches)
-        assert.deepEqual(actualRbranches, rbranches)
-      })
-  }
+  return judge.getChallenge.call(uuid)
+    .then((res) => {
+      const [actualStart, actualEnd, actualProposed, actualIndices, actualLbranches, actualRbranches] = res
+      const actualChallenge = {
+        start: actualStart,
+        end: actualEnd,
+        proposed: actualProposed,
+        indices: actualIndices.map((elem) => elem.toNumber()),
+        lbranches: actualLbranches,
+        rbranches: actualRbranches
+      }
+      assert.deepEqual(actualChallenge, challenge)
+    })
 }
 
 export function shouldFail(p, message) {
@@ -45,9 +47,17 @@ export function shouldFail(p, message) {
 // Monkey patch testrpc time
 export function setTime(newTime) {
   const baseURL = 'http://localhost:8546'
-  axios.post(baseURL, {
+  return axios.post(baseURL, {
     time: newTime
   })
+}
+
+export function saveSnapshot() {
+  return rpc('evm_snapshot')
+}
+
+export function revertToSnapshot() {
+  return rpc('evm_revert')
 }
 
 export function rpc(method, arg) {
