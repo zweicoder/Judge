@@ -83,12 +83,10 @@ contract Judge {
             endSession(uuid, liar);
             return;
         }
-        if (!updateMoves(uuid, branches)) return; // Wait for the other player. TODO check if time expired
-
-        // Both have submitted the X number of branches
-        var difference = findDifference(uuid);
-        updateChallenge(uuid, difference); // RECURSIVE CALL to contract possible to drain $$$??
+        if (!updateMoves(uuid, branches)) return;
+        // Keep session alive by updating lastActive if both players submitted their move
         keepSessionAlive(uuid);
+        updateChallenge(uuid, findDifference(uuid));
     }
 
     function test(bytes32 uuid, bytes32[] branches) external  onlyValidInput(uuid, branches) onlySessionPlayers(uuid){
@@ -103,7 +101,7 @@ contract Judge {
             return;
         }
         Log('Updating moves..');
-        if (!updateMoves(uuid, branches)) return; // Wait for the other player. TODO check if time expired
+        if (!updateMoves(uuid, branches)) return;
         //TODO FIX PROBLEM WHY DID IT MOVE PAST RETURN? WHY  IS FIND DIFFERENCE THROWING
         var difference = findDifference(uuid);
     }
@@ -147,7 +145,7 @@ contract Judge {
     }
 
     // Find out who's correct if below threshold, else update state variables and request new indices
-    function updateChallenge(bytes32 uuid, uint diffIdx) internal {
+    function updateChallenge(bytes32 uuid, uint diffIdx) internal{
         Challenge challenge = challenges[uuid];
         Session session = sessions[uuid];
         
@@ -160,7 +158,6 @@ contract Judge {
             // The reason we take both ends is to prevent a dishonest person to win another dishonest person. ie challenger used a bad hash but the insurer was using a bad hash as well but now the challenger wins.
             var liar = getJudgement(uuid, computed, newEnd, newProposed);
             endSession(uuid, liar);
-            return;
         }
 
         // Update storage with new consensus
